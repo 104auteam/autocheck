@@ -151,35 +151,35 @@ Write(COMPETITOR)
 
 # TODO: C1.1 Hostname
 
-hosts       = ['HQ1', 'SW1']
+hosts       = ['HQ1', 'SW1', 'FW1']
 commands    = ['sh run | i hostname']
 description = 'Hostname'
 SendCommand(hosts, commands, description)
 
 # TODO: C1.2 Domain name
 
-hosts       = ['SW2', 'SW3']
+hosts       = ['SW2', 'SW3', 'HQ1']
 commands    = ['sh run | i ip domain']
 description = 'Domain name'
 SendCommand(hosts, commands, description)
 
 # TODO: C1.3 Local user
 
-hosts       = ['FW1', 'SW1']
-commands    = ['sh run | i username ' + USER]
+hosts       = ['FW1', 'SW1', 'BR1']
+commands    = ['sh run | i username ']
 description = 'Local user'
 SendCommand(hosts, commands, description)
 
 # TODO: C1.4 Enable password
 
-hosts       = ['SW2', 'BR1']
-commands    = ['sh run | i enable secret']
+hosts       = ['SW2', 'BR1', 'HQ1']
+commands    = ['sh run | i enable']
 description = 'Enable password'
 SendCommand(hosts, commands, description)
 
 # TODO: C1.5 Password encryption
 
-hosts       = ['SW1', 'BR1']
+hosts       = ['SW1', 'BR1', 'SW3']
 commands    = ['sh run | i service password']
 description = 'Password encryption'
 SendCommand(hosts, commands, description)
@@ -214,7 +214,7 @@ SendCommand(hosts, commands, description)
 
 # TODO: C1.10 Remote management
 
-hosts       = ['SW1', 'BR1']
+hosts       = ['SW1', 'BR1', 'HQ1']
 commands    = ['sh ip ssh | i version']
 description = 'Remote management'
 SendCommand(hosts, commands, description)
@@ -236,21 +236,21 @@ SendCommand(hosts, commands, description)
 # TODO: C1.13 DTP manipulation
 
 hosts       = ['SW1', 'SW2', 'SW3']
-commands    = ['show int trun | i trunking']
+commands    = ['show int trunk | i trunking']
 description = 'DTP manipulation'
 SendCommand(hosts, commands, description)
 
 # TODO: C1.14 Etherchannel LACP
 
 hosts       = ['SW1', 'SW2']
-commands    = ['sh ether sum | i LACP', 'sh ether detail | i Channel group = 1']
+commands    = ['sh ether sum | i Po']
 description = 'Etherchannel LACP'
 SendCommand(hosts, commands, description)
 
 # TODO: C1.15 Etherchannel PAgP
 
 hosts       = ['SW1', 'SW3']
-commands    = ['sh ether sum | i PAgP', 'sh ether detail | i Channel group = 2']
+commands    = ['sh ether sum | i Po']
 description = 'Etherchannel PAgP'
 SendCommand(hosts, commands, description)
 
@@ -278,7 +278,7 @@ SendCommand(hosts, commands, description)
 # TODO: C1.19 VLAN port assignment
 
 hosts       = ['SW2', 'SW3']
-commands    = ['sh ip int b | i 0/10', 'sh vl b | i 0/10']
+commands    = ['sh ip int b']
 description = 'VLAN port assignment'
 SendCommand(hosts, commands, description)
 
@@ -423,20 +423,6 @@ commands    = ['sh ntp as', 'sh run | i timezone', 'sh clock']
 description = 'NTP'
 SendCommand(hosts, commands, description)
 
-# TODO: C1.39 NAT HQ1
-
-hosts       = ['HQ1']
-commands    = ['-']
-description = '-'
-SendCommand(hosts, commands, description)
-
-# TODO: C1.40 NAT BR1
-
-hosts       = ['BR1']
-commands    = ['-']
-description = '-'
-SendCommand(hosts, commands, description)
-
 # TODO: C1.41 DHCP
 
 hosts       = ['HQ1']
@@ -447,7 +433,7 @@ SendCommand(hosts, commands, description)
 # TODO: C1.42 PPPoE server
 
 hosts       = ['BR1']
-commands    = ['sh pppoe summ', 'sh ppp all']
+commands    = ['sh run | s Virtual-Template']
 description = 'PPPoE server'
 SendCommand(hosts, commands, description)
 
@@ -518,7 +504,7 @@ SendCommand(hosts, commands, description)
 
 hosts       = ['HQ1', 'BR1']
 commands    = ['sh ip int b | i Tunnel1', 'sh crypto isakmp key', 'sh crypto isakmp policy', 'sh crypto isakmp sa', 'sh crypto ipsec sa | i inbound esp|outbound esp|Status']
-description = 'x'
+description = 'GRE Tunnel protection'
 SendCommand(hosts, commands, description)
 
 end = datetime.datetime.now()
