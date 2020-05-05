@@ -279,7 +279,7 @@ SendScript -VM 'L-CLI-B'                              `
            -Password 'P@ssw0rd'
 
 # TODO: A2.3 Syslog: L-SRV
-$SCRIPT = 'logger -p auth.err AUTH FROM L-SRV; grep "AUTH FROM L-SRV" /opt/logs/L-SRV/auth.log'
+$SCRIPT = 'logger -p auth.err AUTH FROM L-SRV; grep "AUTH FROM L-SRV" /var/log/custom'
 SendScript -VM 'L-SRV'                                `
            -Script $SCRIPT                            `
            -Description 'Syslog: L-SRV'
@@ -290,7 +290,7 @@ SendScript -VM 'L-FW'                                `
            -Script $SCRIPT                           `
            -Description 'Syslog: L-FW'
 
-$SCRIPT = 'grep "ERROR FROM L-FW" /opt/logs/L-FW/error.log'
+$SCRIPT = 'grep "ERROR FROM L-FW" /var/log/custom'
 SendScript -VM 'L-SRV'                                `
            -Script $SCRIPT
 
@@ -301,7 +301,7 @@ SendScript -VM 'L-FW'                                 `
            -Description 'RA: OpenVPN basic'
 
 # TODO: A3.2 RA: VPN Clients have full access to LEFT and RIGHT LANs
-$SCRIPT = 'echo -e "\n Files: "; ls /opt/vpn; start_vpn.sh; sleep 5; echo -e "\n ping test LEFT: "; ping L-SRV.skill39.wsr -c 2'
+$SCRIPT = 'echo -e "\n Files: "; ls /opt/vpn; start_vpn.sh; sleep 5; echo -e "\n ping test LEFT: "; ping L-SRV.skill39.wsr -c 2; echo -e "\nRoutes: "; ip r'
 SendScript -VM 'OUT-CLI'                              `
            -Script $SCRIPT                            `
            -Description 'RA: VPN Clients have full access to LAN'
