@@ -156,27 +156,27 @@ Write-Output $DATE        | Out-File $FILE -Append -NoClobber
 Write-Output $COMPETITOR  | Out-File $FILE -Append -NoClobber
 
 # TODO: A1.1 Hostnames
-SendScript -VM 'L-CLI-A', 'R-SRV'                     `
+SendScript -VM 'L-CLI-A', 'R-SRV', 'OUT-CLI'                     `
            -Script 'cat /etc/hostname'                `
            -Description 'Hostnames'
            
 # TODO: A1.2 IPv4 connectivity
-SendScript -VM 'L-CLI-B', 'R-CLI'                     `
+SendScript -VM 'L-CLI-B', 'R-CLI', 'L-SRV'                     `
            -Script 'ping -c 4 2.2.2.2'                `
            -Description 'IPv4 connectivity'
 
 # TODO: A1.3 Software installation
-SendScript -VM 'L-SRV', 'R-RTR'                       `
+SendScript -VM 'L-SRV', 'R-RTR', 'OUT-CLI'                       `
            -Script 'whereis tcpdump vim lynx curl'    `
            -Description 'Software installation'
 
 # TODO: A1.4 Local hostname table
-SendScript -VM 'OUT-CLI', 'L-RTR-B'                   `
+SendScript -VM 'OUT-CLI', 'L-RTR-B', 'R-SRV'               `
            -Script 'cat /etc/hosts'                   `
            -Description 'Local hostname table'
 
 # TODO: A1.5 Name lookup order
-SendScript -VM 'OUT-CLI', 'L-RTR-B'                   `
+SendScript -VM 'OUT-CLI', 'L-RTR-B', 'R-SRV'                   `
            -Script "grep '^hosts' /etc/nsswitch.conf" `
            -Description 'Name lookup order'
 
@@ -203,7 +203,7 @@ SendScript -VM 'L-CLI-B'                              `
            -Description 'DHCP-B: Additional Parameters'
 
 # TODO: A1.10 DNS: Forward zone
-$SCRIPT = 'host l-srv.skill39.wsr; host vpn.skill39.wsr; host r-cli.skill39.wsr'
+$SCRIPT = 'host l-srv.skill39.wsr; host server.skill39.wsr; host www.skill39.wsr'
 SendScript -VM 'L-CLI-A'                              `
            -Script $SCRIPT                            `
            -Description 'DNS: Forward zone'
@@ -215,14 +215,9 @@ SendScript -VM 'L-CLI-A'                              `
            -Description 'DNS: Reverse zone'
 
 # TODO: A1.12 DNS: ISP Forwarders
-SendScript -VM 'R-CLI'                                `
+SendScript -VM 'L-CLI-A'                                `
            -Script 'host ya.ru'                       `
            -Description 'DNS: ISP Forwarders'
-
-# TODO: A1.13 DNS: Secondary DNS
-SendScript -VM 'R-CLI'                                `
-           -Script 'host ya.ru'                       `
-           -Description 'DNS: Secondary DNS'
 
 # TODO: A1.14 DNS: Dynamic DNS
 # 1. Resolve L-CLI-A
@@ -242,6 +237,10 @@ SendScript -VM 'L-CLI-B'                              `
 SendScript -VM 'L-CLI-A'                              `
            -Script 'dhclient -v &> /dev/null'
 
+# 5. Resolve again
+SendScript -VM 'L-CLI-B'                              `
+           -Script 'host L-CLI-A'
+
 # TODO: A1.15 Internet Gateway (Dynamic NAT)-LEFT
 SendScript -VM 'L-CLI-A'                              `
            -Script 'ping 20.20.20.10 -c 4'            `
@@ -254,33 +253,33 @@ SendScript -VM 'R-CLI'                                `
 
 # TODO: A1.17 DNS-Proxy
 SendScript -VM 'OUT-CLI'                              `
-           -Script 'host www.skill39.wsr'             `
+           -Script 'host www.skill39.wsr 10.10.10.1'             `
            -Description 'DNS-Proxy'
 
 # TODO: A2.1 LDAP: Users, Groups and OU
-$SCRIPT = 'ldapsearch -x cn=user -b ou=Guest,dc=skill39,dc=wsr'
+$SCRIPT = 'slapcat | grep dn'
 SendScript -VM 'L-SRV'                                `
            -Script $SCRIPT                            `
            -Description 'LDAP: Users, Groups and OU'
 
 # TODO: A2.2 LDAP: Clients authentication
 # 1. Login from tux
-$SCRIPT = 'grep ^tux /etc/passwd; echo LDAP Authentication from tux has been successfully'
+$SCRIPT = 'test=`grep ^tux /etc/passwd`; [[ -z "$test" ]] && echo "LDAP Success and Local user not exist" || echo "Local user exist, LDAP authentication failed"'
 SendScript -VM 'L-CLI-A'                              `
            -Script $SCRIPT                            `
            -Username 'tux'                            `
            -Password 'toor'                           `
            -Description 'LDAP: Clients authentication'
 
-# 2. Login from tux
-$SCRIPT = 'grep ^user /etc/passwd; echo LDAP Authentication from user has been successfully'
+# 2. Login from user
+$SCRIPT = 'test=`grep ^user /etc/passwd`; [[ -z "$test" ]] && echo "LDAP Success and Local user not exist" || echo "Local user exist, LDAP authentication failed"'
 SendScript -VM 'L-CLI-B'                              `
            -Script $SCRIPT                            `
            -Username 'user'                           `
            -Password 'P@ssw0rd'
 
 # TODO: A2.3 Syslog: L-SRV
-$SCRIPT = 'date && tail -n 1 /opt/logs/L-SRV/auth.log'
+$SCRIPT = 'logger -p auth.err AUTH FROM L-SRV; grep "AUTH FROM L-SRV" /opt/logs/L-SRV/auth.log'
 SendScript -VM 'L-SRV'                                `
            -Script $SCRIPT                            `
            -Description 'Syslog: L-SRV'
@@ -291,21 +290,21 @@ SendScript -VM 'L-FW'                                `
            -Script $SCRIPT                           `
            -Description 'Syslog: L-FW'
 
-$SCRIPT = 'date && grep "ERROR FROM L-FW" /opt/logs/L-FW/error.log'
+$SCRIPT = 'grep "ERROR FROM L-FW" /opt/logs/L-FW/error.log'
 SendScript -VM 'L-SRV'                                `
            -Script $SCRIPT
 
 # TODO: A3.1 RA: OpenVPN basic
-$SCRIPT = 'ls /opt/vpn /etc/openvpn; netstat -npl | grep 1122; echo Unit status: &&  systemctl status openvpn@server | cat | grep Active; echo Config file: && grep -v "^[# $ ;]" /etc/openvpn/*.conf | grep -v "^$"'
+$SCRIPT = 'echo -e "\n Files: "; ls /opt/vpn /etc/openvpn; echo -e "\n Port: " ss -natu | grep 1122; echo -e "\n Unit status: " &&  systemctl status openvpn@server | cat | grep Active; echo -e "\n Config file: " && grep -v "^[# $ ;]" /etc/openvpn/*.conf | grep -v "^$"'
 SendScript -VM 'L-FW'                                 `
            -Script $SCRIPT                            `
            -Description 'RA: OpenVPN basic'
 
 # TODO: A3.2 RA: VPN Clients have full access to LEFT and RIGHT LANs
-$SCRIPT = 'ls /opt/vpn; start_vpn.sh; sleep 5; ping L-SRV.skill39.wsr -c 2; ping R-SRV.skill39.wsr -c 2'
+$SCRIPT = 'echo -e "\n Files: "; ls /opt/vpn; start_vpn.sh; sleep 5; echo -e "\n ping test LEFT: "; ping L-SRV.skill39.wsr -c 2'
 SendScript -VM 'OUT-CLI'                              `
            -Script $SCRIPT                            `
-           -Description 'RA: VPN Clients have full access to LEFT and RIGHT LANs'
+           -Description 'RA: VPN Clients have full access to LAN'
 
 # TODO: A3.3 IPSEC + GRE
 $SCRIPT = 'ipsec status | grep connections:'
@@ -342,53 +341,53 @@ SendScript -VM 'L-RTR-A','R-RTR'                      `
 
 # TODO: A3.8 SSH: Users
 SendScript -VM 'OUT-CLI'                              `
-           -Script 'ssh ssh_c@l-fw.skill39.wsr'       `
+           -Script 'sshpass -p ssh_pass ssh -T -o StrictHostKeyChecking=no ssh_c@l-fw.skill39.wsr id'       `
            -Description 'SSH: Users'
 
 SendScript -VM 'OUT-CLI'                              `
-           -Script 'ssh root@l-fw.skill39.wsr'        `
-
-SendScript -VM 'OUT-CLI'                              `
-           -Script 'ssh abc@l-fw.skill39.wsr'         `
+           -Script 'sshpass -p toor ssh -T -o StrictHostKeyChecking=no ssh_c@l-fw.skill39.wsr id'        `
 
 # TODO: A3.9 SSH: Key authentication
 SendScript -VM 'OUT-CLI'                              `
-           -Script 'ssh ssh_p@l-fw.skill39.wsr'       `
+           -Script 'ssh -T -o StrictHostKeyChecking=no ssh_p@l-fw.skill39.wsr id'       `
            -Description 'SSH: Key authentication'
 
 # TODO: A4.1 Apache: Port, PHP
 SendScript -VM 'R-SRV'                                `
-           -Script 'netstat -tulpn'                   `
-           -Description 'Apache: Port, PHP'
+           -Script 'ss -natu | grep 80'                   `
+           -Description 'Apache: Port'
+
+SendScript -VM 'R-CLI'                                `
+           -Script 'wget http://www.skill39.wsr -O-'                   `
+           -Description 'Apache: index'
+
+SendScript -VM 'R-CLI'                                `
+           -Script 'wget http://www.skill39.wsr/date.php -O-'                   `
+           -Description 'Apache: PHP'
 
 # TODO: A4.2 rsync: L-SRV configuration
-$SCRIPT = 'cat /etc/rsyncd.conf; systemctl status rsync | grep Active'
 SendScript -VM 'L-SRV'                                `
-           -Script $SCRIPT                            `
+           -Script 'cat /etc/rsyncd.conf; echo -e "\n Unit status: "; systemctl status rsync | grep Active'                            `
            -Description 'rsync: L-SRV configuration'
 
 # TODO: A4.3 rsync: Client sync 
 # 1. Create file
-$SCRIPT = 'rm -rf /opt/sync/*; echo rsync work! > /opt/sync/aasdfljaxczvi123; ls -las /opt/sync'
 SendScript -VM 'L-SRV'                                `
-           -Script $SCRIPT                            `
+           -Script 'rm -rf /opt/sync/*; echo rsync work! > /opt/sync/aasdfljaxczvi123; ls -las /opt/sync'                            `
            -Description 'rsync: Client sync'
            
 # 2. Check sync
-$SCRIPT = 'cat /root/sync.sh; ls -las /root/sync/; sleep 61; ls -las /root/sync'
 SendScript -VM 'L-CLI-A','L-CLI-B'                    `
-           -Script $SCRIPT                            `
+           -Script 'echo -e "\n Script: "; cat /root/sync.sh; rm -rf /root/sync/*; echo -e "\n Before Sync: "; ls -las /root/sync/; sleep 61; echo -e "\n After Sync: "; ls -las /root/sync'
         
 # TODO: A5.1 OpenSSL: CA
-$SCRIPT = 'ls -las /etc/ca; cat /etc/ca/index.txt'
 SendScript -VM 'R-FW'                                 `
-           -Script $SCRIPT                            `
+           -Script '[[ -d /etc/ca ]] && ls -las /etc/ca || echo "Directory /etc/ca Not Exist!"'                          `
            -Description 'OpenSSL: CA'
 
 # TODO: A5.2 Certificate Attributes
-$SCRIPT = 'head /etc/ca/cacert.pem'
 SendScript -VM 'R-FW'                                 `
-           -Script $SCRIPT                            `
+           -Script 'head /etc/ca/cacert.pem'                          `
            -Description 'Certificate Attributes'
 
 # TODO: A5.3 IPTables: Block traffic
@@ -404,14 +403,8 @@ SendScript -VM 'L-FW'                                 `
            -Description 'IPTables: Allow only nessesary traffic'
 
 # TODO: A5.5 Firewalld: Block traffic 
-$SCRIPT = 'firewall-cmd --list-all'
-SendScript -VM 'L-FW'                                 `
-           -Script $SCRIPT                            `
-           -Description 'IPTables: Allow only nessesary traffic'
-
-# TODO: A5.6 Firewalld: Allow only nessesary traffic
-$SCRIPT = 'ip r | grep default; firewall-cmd --list-all'
-SendScript -VM 'L-FW'                                 `
+$SCRIPT = 'firewall-cmd --list-all-zones'
+SendScript -VM 'R-FW'                                 `
            -Script $SCRIPT                            `
            -Description 'IPTables: Allow only nessesary traffic'
 
