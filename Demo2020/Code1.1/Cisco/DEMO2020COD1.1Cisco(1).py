@@ -447,7 +447,7 @@ SendCommand(hosts, commands, description)
 # TODO: C1.44 User1 privilege
 
 hosts       = ['BR1']
-commands    = ['sh run | i user1', 'sh run | i privilege exec level 5']
+commands    = ['sh run | i user1', 'sh run | i privilege exec level ']
 description = 'User1 privilege'
 SendCommand(hosts, commands, description)
 

@@ -257,72 +257,66 @@ SendScript -VM 'OUT-CLI'                              `
            -Description 'DNS-Proxy'
 
 # TODO: A2.1 LDAP: Users, Groups and OU
-$SCRIPT = 'slapcat | grep dn'
 SendScript -VM 'L-SRV'                                `
-           -Script $SCRIPT                            `
+           -Script 'slapcat | grep dn'                            `
            -Description 'LDAP: Users, Groups and OU'
 
 # TODO: A2.2 LDAP: Clients authentication
 # 1. Login from tux
-$SCRIPT = 'test=`grep ^tux /etc/passwd`; [[ -z "$test" ]] && echo "LDAP Success and Local user not exist" || echo "Local user exist, LDAP authentication failed"'
 SendScript -VM 'L-CLI-A'                              `
-           -Script $SCRIPT                            `
+           -Script 'test=`grep ^tux /etc/passwd`; [[ -z "$test" ]] && echo "LDAP Success and Local user not exist" || echo "Local user exist, LDAP authentication failed"'                            `
            -Username 'tux'                            `
            -Password 'toor'                           `
            -Description 'LDAP: Clients authentication'
 
 # 2. Login from user
-$SCRIPT = 'test=`grep ^user /etc/passwd`; [[ -z "$test" ]] && echo "LDAP Success and Local user not exist" || echo "Local user exist, LDAP authentication failed"'
 SendScript -VM 'L-CLI-B'                              `
-           -Script $SCRIPT                            `
+           -Script 'test=`grep ^user /etc/passwd`; [[ -z "$test" ]] && echo "LDAP Success and Local user not exist" || echo "Local user exist, LDAP authentication failed"'                            `
            -Username 'user'                           `
            -Password 'P@ssw0rd'
 
 # TODO: A2.3 Syslog: L-SRV
-$SCRIPT = 'logger -p auth.err AUTH FROM L-SRV; grep "AUTH FROM L-SRV" /var/log/custom'
-SendScript -VM 'L-SRV'                                `
-           -Script $SCRIPT                            `
-           -Description 'Syslog: L-SRV'
+SendScript -VM 'L-RTR-A'                                `
+           -Script 'logger -p auth.err AUTH FROM L-RTR-A'                           
+
+
+SendScript -VM 'L-SRV'                         
+           -Script 'grep "AUTH FROM L-RTR-A" /var/log/custom/L-RTR-A.log'                `
+           -Description 'Syslog: L-RTR-A'
 
 # TODO: A2.4 Syslog: L-FW
-$SCRIPT = 'grep 172.16.20.10 /etc/rsyslog.conf && logger -p err ERROR FROM L-FW'
 SendScript -VM 'L-FW'                                `
-           -Script $SCRIPT                           `
+           -Script 'grep 172.16.20.10 /etc/rsyslog.conf && logger -p err ERROR FROM L-FW'                           
+
+SendScript -VM 'L-SRV'                                `
+           -Script 'grep "ERROR FROM L-FW" /var/log/custom/L-FW.log'                            `
            -Description 'Syslog: L-FW'
 
-$SCRIPT = 'grep "ERROR FROM L-FW" /var/log/custom'
-SendScript -VM 'L-SRV'                                `
-           -Script $SCRIPT
-
 # TODO: A3.1 RA: OpenVPN basic
-$SCRIPT = 'echo -e "\n Files: "; ls /opt/vpn /etc/openvpn; echo -e "\n Port: " ss -natu | grep 1122; echo -e "\n Unit status: " &&  systemctl status openvpn@server | cat | grep Active; echo -e "\n Config file: " && grep -v "^[# $ ;]" /etc/openvpn/*.conf | grep -v "^$"'
 SendScript -VM 'L-FW'                                 `
-           -Script $SCRIPT                            `
+           -Script 'echo -e "\n Files: "; ls /opt/vpn /etc/openvpn; echo -e "\n Port: " ss -natu | grep 1122; echo -e "\n Unit status: " &&  systemctl status openvpn@server | cat | grep Active; echo -e "\n Config file: " && grep -v "^[# $ ;]" /etc/openvpn/*.conf | grep -v "^$"'                            `
            -Description 'RA: OpenVPN basic'
 
 # TODO: A3.2 RA: VPN Clients have full access to LEFT and RIGHT LANs
-$SCRIPT = 'echo -e "\n Files: "; ls /opt/vpn; start_vpn.sh; sleep 5; echo -e "\n ping test LEFT: "; ping L-SRV.skill39.wsr -c 2; echo -e "\nRoutes: "; ip r'
 SendScript -VM 'OUT-CLI'                              `
-           -Script $SCRIPT                            `
+           -Script 'echo -e "\n Files: "; ls /opt/vpn; start_vpn.sh; sleep 5; echo -e "\n ping test LEFT: "; ping L-SRV.skill39.wsr -c 2; echo -e "\nRoutes: "; ip r'                            `
            -Description 'RA: VPN Clients have full access to LAN'
 
 # TODO: A3.3 IPSEC + GRE
-$SCRIPT = 'ipsec status | grep connections:'
 SendScript -VM 'R-FW'                                 `
-           -Script $SCRIPT                            `
+           -Script 'ipsec status | grep connections:'                            `
            -Description 'IPSEC + GRE'
-$SCRIPT = 'ipsec status'
+
 SendScript -VM 'L-FW'                                 `
-           -Script $SCRIPT                            `
+           -Script 'ipsec status'                           
 
 # TODO: A3.4 GRE Tunnel Cinnectivity
-$SCRIPT = 'ping 10.5.5.1 -c 2'
 SendScript -VM 'R-FW'                                 `
-           -Script $SCRIPT                            `
+           -Script $SCRIPT = 'ping 10.5.5.1 -c 2'                            `
            -Description 'GRE Tunnel Cinnectivity'
-$SCRIPT = 'ping 10.5.5.2 -c 2'
+
 SendScript -VM 'L-FW'                                 `
-           -Script $SCRIPT                            `
+           -Script 'ping 10.5.5.2 -c 2'                            
 
 # TODO: A3.5 FRR: Neigbours 
 SendScript -VM 'L-FW','R-FW'                          `
@@ -345,7 +339,7 @@ SendScript -VM 'OUT-CLI'                              `
            -Description 'SSH: Users'
 
 SendScript -VM 'OUT-CLI'                              `
-           -Script 'sshpass -p toor ssh -T -o StrictHostKeyChecking=no ssh_c@l-fw.skill39.wsr id'        `
+           -Script 'sshpass -p toor ssh -T -o StrictHostKeyChecking=no ssh_c@l-fw.skill39.wsr id'
 
 # TODO: A3.9 SSH: Key authentication
 SendScript -VM 'OUT-CLI'                              `
@@ -391,21 +385,18 @@ SendScript -VM 'R-FW'                                 `
            -Description 'Certificate Attributes'
 
 # TODO: A5.3 IPTables: Block traffic
-$SCRIPT = 'iptables -t filter -L -v | grep Chain'
 SendScript -VM 'L-FW'                                 `
-           -Script $SCRIPT                            `
+           -Script 'iptables -t filter -L -v | grep Chain'                            `
            -Description 'IPTables: Block traffic'
 
 # TODO: A5.4 IPTables: Allow only nessesary traffic
-$SCRIPT = 'iptables -t filter -L -v'
 SendScript -VM 'L-FW'                                 `
-           -Script $SCRIPT                            `
+           -Script 'iptables -t filter -L -v'                            `
            -Description 'IPTables: Allow only nessesary traffic'
 
 # TODO: A5.5 Firewalld: Block traffic 
-$SCRIPT = 'firewall-cmd --list-all-zones'
 SendScript -VM 'R-FW'                                 `
-           -Script $SCRIPT                            `
+           -Script 'firewall-cmd --list-all-zones'                            `
            -Description 'IPTables: Allow only nessesary traffic'
 
 $DATE = Get-Date
